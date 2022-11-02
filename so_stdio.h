@@ -36,6 +36,8 @@
 typedef enum{
     read_op,
     write_op,
+    fflush_op,
+    fseek_op,
     none_op
 } LOPERATION;
 
@@ -44,13 +46,16 @@ typedef struct SO_FILE{
     DWORD flags;
     char buffer[4096];
     int buffer_offset;
+    int file_offset;
+    int bool_is_eof;
+    int bool_is_error;
     LOPERATION last_operation;
     OPENMODE openmode;
 }SO_FILE;
 
 FUNC_DECL_PREFIX SO_FILE *so_fopen(const char *pathname, const char *mode);
 FUNC_DECL_PREFIX int so_fclose(SO_FILE *stream);
-/*
+
 #if defined(__linux__)
 FUNC_DECL_PREFIX int so_fileno(SO_FILE *stream);
 #elif defined(_WIN32)
@@ -64,7 +69,7 @@ FUNC_DECL_PREFIX int so_fflush(SO_FILE *stream);
 
 FUNC_DECL_PREFIX int so_fseek(SO_FILE *stream, long offset, int whence);
 FUNC_DECL_PREFIX long so_ftell(SO_FILE *stream);
-
+/*
 FUNC_DECL_PREFIX
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream);
 
@@ -73,10 +78,10 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream);
 
 FUNC_DECL_PREFIX int so_fgetc(SO_FILE *stream);
 FUNC_DECL_PREFIX int so_fputc(int c, SO_FILE *stream);
-
+*/
 FUNC_DECL_PREFIX int so_feof(SO_FILE *stream);
 FUNC_DECL_PREFIX int so_ferror(SO_FILE *stream);
-
+/*
 FUNC_DECL_PREFIX SO_FILE *so_popen(const char *command, const char *type);
 FUNC_DECL_PREFIX int so_pclose(SO_FILE *stream);
 */
