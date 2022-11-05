@@ -38,6 +38,36 @@ DWORD get_flags(const char* mode)
     return flags;
 }
 
+DWORD get_accessmode(const char* mode)
+{
+    DWORD desired_access=0;
+    if (strcmp(mode, "r") == 0)
+    {
+        desired_access=GENERIC_READ;
+    }
+    if (strcmp(mode, "w") == 0)
+    {
+        desired_access=GENERIC_WRITE;
+    }
+    if (strcmp(mode, "a") == 0)
+    {
+        desired_access=FILE_APPEND_DATA;
+    }
+    if (strcmp(mode, "r+") == 0)
+    {
+        desired_access=GENERIC_READ | GENERIC_WRITE;
+    }
+    if (strcmp(mode, "w+") == 0)
+    {
+        desired_access=GENERIC_READ | GENERIC_WRITE;
+    }
+    if (strcmp(mode, "a+") == 0)
+    {
+        desired_access=GENERIC_READ|FILE_APPEND_DATA;
+    }
+    return desired_access;
+}
+
 OPENMODE get_open_mode(const char* mode)
 {
     if (strcmp(mode, "r") == 0)
@@ -65,4 +95,22 @@ OPENMODE get_open_mode(const char* mode)
         return aplus;
     }
     return unset;
+}
+
+int is_read_flag_on(OPENMODE mode)
+{
+    if(mode==r || mode==rplus || mode==aplus||mode==wplus)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int is_write_flag_on(OPENMODE mode)
+{
+    if(mode==w || mode==wplus || mode==aplus||mode==a||mode==rplus)
+    {
+        return 1;
+    }
+    return 0;
 }

@@ -44,8 +44,9 @@ typedef enum{
 typedef struct SO_FILE{
     HANDLE handle;
     DWORD flags;
-    char buffer[4096];
-    int buffer_offset;
+    char buffer[BUFFER_SIZE];
+    int buffer_offset; 
+    int buffer_length;
     int file_offset;
     int bool_is_eof;
     int bool_is_error;
@@ -68,8 +69,9 @@ FUNC_DECL_PREFIX HANDLE so_fileno(SO_FILE *stream);
 FUNC_DECL_PREFIX int so_fflush(SO_FILE *stream);
 
 FUNC_DECL_PREFIX int so_fseek(SO_FILE *stream, long offset, int whence);
+
 FUNC_DECL_PREFIX long so_ftell(SO_FILE *stream);
-/*
+
 FUNC_DECL_PREFIX
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream);
 
@@ -77,9 +79,11 @@ FUNC_DECL_PREFIX
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream);
 
 FUNC_DECL_PREFIX int so_fgetc(SO_FILE *stream);
+
 FUNC_DECL_PREFIX int so_fputc(int c, SO_FILE *stream);
-*/
+
 FUNC_DECL_PREFIX int so_feof(SO_FILE *stream);
+
 FUNC_DECL_PREFIX int so_ferror(SO_FILE *stream);
 /*
 FUNC_DECL_PREFIX SO_FILE *so_popen(const char *command, const char *type);

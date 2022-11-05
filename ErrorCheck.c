@@ -47,13 +47,6 @@ int check_error_so_fflush(SO_FILE *stream)
         printf("FFlush nu va face nimic pentru ca ultima operatie nu este de scriere\n");
         return THROW_SO_EOF;
     }
-
-    // VERIFICA DACA FISIERUL ESTE DESCHIS INTR-UN MOD CARE NU PERMITE SCRIEREA IN FISIER
-    if (stream->openmode == r)
-    {
-        printf("Flush error: fisier deschis pentru citire\n");
-        return THROW_SO_EOF;
-    }
     return MOVEON;
 }
 
@@ -97,6 +90,23 @@ int check_error_so_ferror(SO_FILE* stream)
     if(stream==NULL)
     {
         return THROW_ERR;
+    }
+    return MOVEON;
+}
+
+int check_error_so_fread_fwrite(SO_FILE *stream,size_t size, size_t nmemb)
+{
+    if(stream==NULL)
+    {
+        return THROW_SO_EOF;
+    }
+    if(size<=0)
+    {
+        return THROW_SO_EOF;
+    }
+    if(nmemb<=0)
+    {
+        return THROW_SO_EOF;
     }
     return MOVEON;
 }
