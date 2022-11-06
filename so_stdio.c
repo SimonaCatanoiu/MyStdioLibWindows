@@ -574,22 +574,3 @@ int so_pclose(SO_FILE *stream)
     CloseHandle(process_info.hThread);
     return (int)dwRes;
 }
-
-int main()
-{
-    SO_FILE *f;
-    char line[11];
-    f = so_popen("dir", "r");
-    int total = 0;
-    while (so_feof(f) == 0)
-    {
-        size_t ret = so_fread(&line[total], 1, 10, f);
-        if (ret > 0)
-        {
-            line[ret] = '\0';
-            printf("%s", line);
-        }
-    }
-    so_pclose(f);
-    return 0;
-}
