@@ -4,6 +4,7 @@
 #include "so_stdio.h"
 #include "ErrorCheck.h"
 
+#define COMMAND_LINE_SIZE 8191
 SO_FILE *so_fopen(const char *pathname, const char *mode)
 {
     if (check_error_so_fopen_args(pathname, mode) == THROW_NULL)
@@ -29,6 +30,8 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
     new_file->file_offset = 0;
     new_file->bool_is_eof = 0;
     new_file->bool_is_error = 0;
+    new_file->proc_info.hProcess = INVALID_HANDLE_VALUE;
+    new_file->proc_info.hThread = INVALID_HANDLE_VALUE;
 
     DWORD access_mode = get_accessmode(mode);
 
@@ -338,13 +341,13 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
         return SO_EOF;
     }
 
-    //verifica daca se poate citi din fisier
-    if(is_read_flag_on(stream->openmode)==0)
-    {   
-        stream->bool_is_error=1;
+    // verifica daca se poate citi din fisier
+    if (is_read_flag_on(stream->openmode) == 0)
+    {
+        stream->bool_is_error = 1;
         return SO_EOF;
     }
-    int index=0;
+    int index = 0;
     for (int i = 0; i < nmemb; i++)
     {
         for (int j = 0; j < size; j++)
@@ -358,13 +361,13 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
             }
             else
             { // daca a dat eroare la fgetc, intoarce SO_EOF
-                if (ret_char < 0 && stream->bool_is_error==1)
+                if (ret_char < 0 && stream->bool_is_error == 1)
                 {
                     return SO_EOF;
                 }
             }
             // pune byte in ptr
-            *(((unsigned char *)ptr)+index) = (unsigned char)ret_char;
+            *(((unsigned char *)ptr) + index) = (unsigned char)ret_char;
             index++;
         }
         total_read_elements++;
@@ -384,10 +387,10 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
         return SO_EOF;
     }
 
-    //verifica daca poate scrie in fisier
-    if(is_write_flag_on(stream->openmode)==0)
+    // verifica daca poate scrie in fisier
+    if (is_write_flag_on(stream->openmode) == 0)
     {
-        stream->bool_is_error=1;
+        stream->bool_is_error = 1;
         return SO_EOF;
     }
 
@@ -397,10 +400,10 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
         {
             // pentru fiecare byte din ptr, apelam so_fputc
             int index = i * size + j;
-            int char_to_put = *(((unsigned char *) ptr) + i);
-            int ret_value = so_fputc(char_to_put,stream);
+            int char_to_put = *(((unsigned char *)ptr) + i);
+            int ret_value = so_fputc(char_to_put, stream);
             // verificam daca a intampinat vreo eroare
-            if (ret_value < 0 && stream->bool_is_error==1)
+            if (ret_value < 0 && stream->bool_is_error == 1)
             {
                 return SO_EOF;
             }
@@ -411,24 +414,182 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
     return total_elements_written;
 }
 
+SO_FILE *so_popen(const char *command, const char *type)
+{
+    // verifica daca type e r sau w
+    if ((strcmp(type, "r") != 0) && (strcmp(type, "w") != 0))
+    {
+        printf("Popen: argument type invalid\n");
+        return NULL;
+    }
+
+    STARTUPINFO start_info;
+    PROCESS_INFORMATION prcess_info;
+    SECURITY_ATTRIBUTES si_pipe;
+
+    // Pregatire structura STARTUPINFO pentru noul proces
+    ZeroMemory(&start_info, sizeof(start_info));
+    start_info.cb = sizeof(start_info);
+    // pregatire structura PROCESS_INFORMATION pentru noul proces
+    ZeroMemory(&prcess_info, sizeof(prcess_info));
+    // marcam handle-urile pipe-ului ca fiind mostenibile
+    ZeroMemory(&si_pipe, sizeof(si_pipe));
+    si_pipe.bInheritHandle = TRUE;
+    si_pipe.nLength = sizeof(si_pipe);
+
+    // Creare pipe
+    HANDLE hReadPipe, hWritePipe; // capetele pipe-ului
+    BOOL ret_value = CreatePipe(&hReadPipe, &hWritePipe, &si_pipe, 0);
+    if (ret_value == FALSE)
+    {
+        printf("Popen: eroare la crearea pipe-ului\n");
+        return NULL;
+    }
+
+    // Setam Handle-urile pentru stdin, stdout, stderr pentru procesul copil
+    if (strcmp(type, "r") == 0)
+    {
+        start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        start_info.hStdOutput = hWritePipe;
+        start_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+        start_info.dwFlags |= STARTF_USESTDHANDLES;
+        // Marcam nemostenibil capatul de pipe nefolosit de copil
+        SetHandleInformation(hReadPipe, HANDLE_FLAG_INHERIT, 0);
+    }
+    else
+    {
+        start_info.hStdInput = hReadPipe;
+        start_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+        start_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+        start_info.dwFlags |= STARTF_USESTDHANDLES;
+        // Marcam nemostenibil capatul de pipe nefolosit de copil
+        SetHandleInformation(hWritePipe, HANDLE_FLAG_INHERIT, 0);
+    }
+
+    // Initializare comanda de executat de copil
+    CHAR argproc[COMMAND_LINE_SIZE];
+    strcpy(argproc, "cmd /C ");
+    strcat(argproc, command);
+
+    // Creare proces copil
+    BOOL create_res = CreateProcess(
+        NULL,           /* No module name (use command line) */
+        (LPSTR)argproc, /* Command line */
+        NULL,           /* Process handle not inheritable */
+        NULL,           /* Thread handle not inheritable */
+        TRUE,           /* Set handle inheritance to TRUE */
+        0,              /* No creation flags */
+        NULL,           /* Use parent's environment block */
+        NULL,           /* Use parent's starting directory */
+        &start_info,    /* Pointer to STARTUPINFO structure */
+        &prcess_info    /* Pointer to PROCESS_INFORMATION structure */
+    );
+
+    if (create_res == FALSE)
+    {
+        // eroare la crearea procesului. Inchid capetele pipe-ului
+        printf("Popen: eroare la crearea procesului copil\n");
+        CloseHandle(hWritePipe);
+        CloseHandle(hReadPipe);
+        return NULL;
+    }
+
+    // inchidem capatul nefolosit de parinte si setam handle-ul fisierului
+    HANDLE file_handle;
+    HANDLE child_handle;
+    if (strcmp(type, "r") == 0)
+    {
+        file_handle = hReadPipe;
+        CloseHandle(hWritePipe);
+    }
+    else
+    {
+        file_handle = hWritePipe;
+        CloseHandle(hReadPipe);
+    }
+
+    // initializare structura SO_FILE
+    // aloca fisier so_file
+    SO_FILE *file = (SO_FILE *)malloc(sizeof(SO_FILE));
+    // verifica alocarea
+    if (file == NULL)
+    {
+        printf("Popen:eroare la alocarea SO_FILE\n");
+        CloseHandle(file_handle);
+        return NULL;
+    }
+
+    // initializeaza structura SO_FILE
+    file->flags = get_flags(type);
+    file->buffer_offset = 0;
+    file->buffer_length = 0;
+    file->file_offset = 0;
+    file->last_operation = none_op;
+    file->openmode = get_open_mode(type);
+    file->bool_is_eof = 0;
+    file->bool_is_error = 0;
+    memset(file->buffer, 0, BUFFER_SIZE);
+    file->proc_info.hProcess = prcess_info.hProcess;
+    file->proc_info.hThread = prcess_info.hThread;
+    file->handle = file_handle;
+
+    return file;
+}
+
+int so_pclose(SO_FILE *stream)
+{
+    if (stream->proc_info.hThread == INVALID_HANDLE_VALUE || stream->proc_info.hProcess == INVALID_HANDLE_VALUE)
+    {
+        printf("Pclose: nu exista proces deschis cu un popen asociat stream-ului\n");
+        return -1;
+    }
+
+    PROCESS_INFORMATION process_info;
+    process_info = stream->proc_info;
+
+    // inchidem si eliberam memoria ocupata de SO_FILE
+    int ret_fclose = so_fclose(stream);
+    if (ret_fclose < 0)
+    {
+        printf("Pclose: eroare la inchiderea stream-ului\n");
+        return -1;
+    }
+
+    /* Asteptam finalizarea copilului */
+    DWORD dwRes = WaitForSingleObject(process_info.hProcess, INFINITE);
+
+    if (dwRes == WAIT_FAILED)
+    {
+        printf("Pclose: eroare la wait\n");
+        return -1;
+    }
+
+    BOOL ret = GetExitCodeProcess(process_info.hProcess, &dwRes);
+    if(ret==FALSE)
+    {
+        printf("Pclose: eroare la GetExitCodeProcess\n");
+        return -1;
+    }
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+    return (int)dwRes;
+}
+
 int main()
 {
-    SO_FILE *file = so_fopen("maine", "r+");
-
-    strcpy(file->buffer, "Acesta este textul de afisat\n");
-    file->buffer_length = strlen(file->buffer);
-    file->last_operation = write_op;
-
-    so_fflush(file);
-
-    char buffer[70]= "Acesta este asdasd asd as das d xc v cxv xc vtextul dasdasdt";
-    so_fwrite(buffer,1,strlen(buffer),file);
-
-    char buffer2[21];
-    so_fseek(file,-20,SEEK_CUR);
-    so_fread(buffer2,1,20,file);
-    buffer2[20]='\0';
-    printf("%s",buffer2);
-
-    so_fclose(file);
+    SO_FILE *f;
+    char line[11];
+    f = so_popen("dir", "r");
+    int total = 0;
+    while (so_feof(f) == 0)
+    {
+        size_t ret = so_fread(&line[total], 1, 10, f);
+        if (ret > 0)
+        {
+            line[ret] = '\0';
+            printf("%s", line);
+        }
+    }
+    so_pclose(f);
+    return 0;
 }

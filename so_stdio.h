@@ -52,6 +52,7 @@ typedef struct SO_FILE{
     int bool_is_error;
     LOPERATION last_operation;
     OPENMODE openmode;
+    PROCESS_INFORMATION proc_info;
 }SO_FILE;
 
 FUNC_DECL_PREFIX SO_FILE *so_fopen(const char *pathname, const char *mode);
@@ -85,9 +86,10 @@ FUNC_DECL_PREFIX int so_fputc(int c, SO_FILE *stream);
 FUNC_DECL_PREFIX int so_feof(SO_FILE *stream);
 
 FUNC_DECL_PREFIX int so_ferror(SO_FILE *stream);
-/*
+
 FUNC_DECL_PREFIX SO_FILE *so_popen(const char *command, const char *type);
+
 FUNC_DECL_PREFIX int so_pclose(SO_FILE *stream);
-*/
+
 
 #endif /* SO_STDIO_H */
