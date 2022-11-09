@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "so_stdio.h"
+#include "utils.h"
 #include "ErrorCheck.h"
 
 #define COMMAND_LINE_SIZE 8191
@@ -53,6 +54,7 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
     {
         printf("Eroare la deschiderea fisierului\n");
         new_file->bool_is_error = 1;
+        free(new_file);
         return NULL;
     }
     return new_file;
@@ -615,3 +617,4 @@ int so_pclose(SO_FILE *stream)
     CloseHandle(process_info.hThread);
     return (int)dwRes;
 }
+

@@ -13,7 +13,7 @@ so_stdio.obj: so_stdio.c so_stdio.h
 utils.obj: utils.c utils.h
 	$(CC) $(CFLAGS) $< /Fo$@
 
-ErrorCheck.obj: ErrorCheck.c ErrorCheck.h so_stdio.h
+ErrorCheck.obj: ErrorCheck.c ErrorCheck.h so_stdio.h utils.h
 	$(CC) $(CFLAGS) $< /Fo$@
 
 clean:

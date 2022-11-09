@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "so_stdio.h": "c",
-        "errorcheck.h": "c"
+        "errorcheck.h": "c",
+        "windows.h": "c"
     }
 }

@@ -7,6 +7,7 @@
 #define MOVEON 1
 
 #include "so_stdio.h"
+#include "utils.h"
 
 int check_error_so_fopen_args(const char *pathname, const char *mode);
 
