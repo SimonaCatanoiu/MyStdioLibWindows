@@ -20,6 +20,7 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
     if (new_file == NULL)
     {
         printf("Nu s-a putut aloca un SO_FILE\n");
+        free(new_file);
         return NULL;
     }
 
@@ -70,6 +71,7 @@ int so_fclose(SO_FILE *stream)
         int ret_value = so_fflush(stream);
         if (ret_value < 0)
         {
+            free(stream);
             return SO_EOF;
         }
     }
@@ -79,6 +81,7 @@ int so_fclose(SO_FILE *stream)
     {
         printf("Eroare la inchiderea fisierului\n");
         stream->bool_is_error = 1;
+        free(stream);
         return SO_EOF;
     }
     free(stream);
@@ -364,7 +367,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
     {
         printf("Fread:argumente invalide\n");
         stream->bool_is_error = 1;
-        return SO_EOF;
+        return 0;
     }
 
     // verifica daca se poate citi din fisier
@@ -372,7 +375,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
     {
         printf("Fread:fara permisiune de citire\n");
         stream->bool_is_error = 1;
-        return SO_EOF;
+        return 0;
     }
     int index = 0;
     for (int i = 0; i < nmemb; i++)
@@ -384,13 +387,15 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
             // daca a ajuns la finalul fisierului, intoarce cate elemente a citit
             if (ret_char < 0 && stream->bool_is_eof == 1)
             {
+                
                 return total_read_elements;
             }
             else
-            { // daca a dat eroare la fgetc, intoarce SO_EOF
+            { // daca a dat eroare la fgetc, intoarce 0
                 if (ret_char < 0 && stream->bool_is_error == 1)
                 {
-                    return SO_EOF;
+
+                    return 0;
                 }
             }
             // pune byte in ptr
@@ -416,7 +421,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
     {
         printf("Fwrite:argumente invalide\n");
         stream->bool_is_error = 1;
-        return SO_EOF;
+        return 0;
     }
 
     // verifica daca poate scrie in fisier
@@ -424,7 +429,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
     {
         printf("Fwrite: fara permisiune de scriere\n");
         stream->bool_is_error = 1;
-        return SO_EOF;
+        return 0;
     }
 
     for (int i = 0; i < nmemb; i++)
@@ -438,7 +443,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
             // verificam daca a intampinat vreo eroare
             if (ret_value < 0 && stream->bool_is_error == 1)
             {
-                return SO_EOF;
+                return 0;
             }
         }
         //fiecare element e de dimensiune size
